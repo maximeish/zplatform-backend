@@ -8,6 +8,7 @@ const passport = require("passport");
 // Load input validation
 const validateRegisterInput = require("../../validation/register");
 const validateLoginInput = require("../../validation/login");
+const validateProfileUpdateInput = require("../../validation/profile");
 
 // Load User model
 const User = require("../../models/User");
@@ -63,6 +64,50 @@ router.post("/register", async (req, res) => {
         });
       });
     }
+  });
+});
+
+router.post("/profile/:id", async (req, res) => {
+  // Form validation
+
+  const { errors, isValid } = validateProfileUpdateInput(req.body);
+
+  // Check validation
+  if (!isValid) {
+    return res.status(400).json(errors);
+  }
+
+  // Find user by id
+  User.findOne({ _id: req.params.id }).then((user) => {
+    // Check if user exists
+    if (!user) {
+      console.log("##### user not found");
+
+      return res.status(404).json({ errpr: "User not found" });
+    }
+    console.log("##### user found");
+
+    console.log("##### received req.body", req.body);
+
+    user.name = req.body?.name;
+    user.nationality = req.body?.nationality;
+    user.photo_url = req.body?.photo_url;
+    user.birthdate = req.body?.birthdate;
+    user.marital_status = req.body?.marital_status;
+    user.age = req.body?.age;
+    user.id_number = req.body?.id_number;
+
+    user
+      .save()
+      .then((data) =>
+        res.status(200).json({
+          message: "User profile updated successfully",
+          data,
+        })
+      )
+      .catch((err) =>
+        res.status(500).json({ error: "Server error: " + err.message })
+      );
   });
 });
 
@@ -151,8 +196,14 @@ router.post("/login", (req, res) => {
 
         // Create JWT Payload
         const payload = {
-          id: user.id,
+          id: user._id,
           name: user.name,
+          nationality: user.nationality,
+          birthdate: user.birthdate,
+          id_number: user.id_number,
+          marital_status: user.marital_status,
+          account_status: user.account_status,
+          age: user.age,
         };
 
         // Sign token
